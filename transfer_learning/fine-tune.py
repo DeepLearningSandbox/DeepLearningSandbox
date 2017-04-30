@@ -13,28 +13,38 @@ from keras.optimizers import SGD
 
 IM_WIDTH, IM_HEIGHT = 299, 299 #fixed size for InceptionV3
 NB_EPOCHS = 3
-FILE_EXT = "jpg"
 BAT_SIZE = 32
 FC_SIZE = 1024
 NB_IV3_LAYERS_TO_FREEZE = 172
 
 
-def get_nb_files(dr, file_ext=FILE_EXT):
+def get_nb_files(directory):
   """Get number of files ending in `file_ext` by searching directory dr recursively"""
   if not os.path.exists(dr):
     return 0
-  fns = []
-  for r, d, files in os.walk(dr):
-    fns.extend([f for f in files if f.endswith(file_ext)])
-  return len(fns)
+  cnt = 0
+  for r, dirs, files in os.walk(directory):
+    for dr in dirs:
+      cnt += len(glob.glob(os.path.join(r, dr + "/*")))
+  return cnt
 
 
 def setup_to_transfer_learn(model):
+  """Freeze all layers"""
   for layer in model.layers:
     layer.trainable = False
 
 
 def add_new_last_layer(base_model, nb_classes):
+  """Add last layer to the convnet
+
+  Args:
+    base_model: keras model excluding top
+    nb_classes: # of classes
+
+  Returns:
+    new keras model with last layer
+  """
   x = base_model.output
   x = GlobalAveragePooling2D()(x)
   x = Dense(FC_SIZE, activation='relu')(x) #new FC layer, random init
@@ -44,13 +54,18 @@ def add_new_last_layer(base_model, nb_classes):
 
 
 def setup_to_finetune(model):
-  # Freeze the bottom N layers and train the remaining top layers
-  # we chose to train the top 2 inception blocks, i.e. we will freeze
-  # the first 172 layers and unfreeze the rest:
+  """Freeze the bottom NB_IV3_LAYERS and re-train the remaining top layers
+
+  note: NB_IV3_LAYERS corresponds to the top 2 inception blocks in the inceptionv3 arch
+
+  Args:
+    model: keras model
+  """
   for layer in model.layers[:NB_IV3_LAYERS_TO_FREEZE]:
      layer.trainable = False
   for layer in model.layers[NB_IV3_LAYERS_TO_FREEZE:]:
      layer.trainable = True
+
 
 def train(args):
   """Use transfer learning and fine-tuning to train a network on a new dataset"""
@@ -60,14 +75,7 @@ def train(args):
   nb_epoch = int(args.nb_epoch)
   batch_size = int(args.batch_size)
 
-  # setup model
-  base_model = InceptionV3(weights='imagenet', include_top=False) #include_top=False excludes final FC layer
-  model = add_new_last_layer(base_model, nb_classes)
-
-  # transfer learning
-  setup_to_transfer_learn(base_model)
-  model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
-
+  # data prep
   train_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
   test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
@@ -82,6 +90,14 @@ def train(args):
     target_size=(IM_WIDTH, IM_HEIGHT),
     batch_size=batch_size,
   )
+
+  # setup model
+  base_model = InceptionV3(weights='imagenet', include_top=False) #include_top=False excludes final FC layer
+  model = add_new_last_layer(base_model, nb_classes)
+
+  # transfer learning
+  setup_to_transfer_learn(base_model)
+  model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
   h1 = model.fit_generator(
     train_generator,
