@@ -29,10 +29,11 @@ def get_nb_files(directory):
   return cnt
 
 
-def setup_to_transfer_learn(model):
-  """Freeze all layers"""
-  for layer in model.layers:
+def setup_to_transfer_learn(model, base_model):
+  """Freeze all layers and compile the model"""
+  for layer in base_model.layers:
     layer.trainable = False
+  model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
 
 
 def add_new_last_layer(base_model, nb_classes):
@@ -54,7 +55,7 @@ def add_new_last_layer(base_model, nb_classes):
 
 
 def setup_to_finetune(model):
-  """Freeze the bottom NB_IV3_LAYERS and re-train the remaining top layers
+  """Freeze the bottom NB_IV3_LAYERS and retrain the remaining top layers.
 
   note: NB_IV3_LAYERS corresponds to the top 2 inception blocks in the inceptionv3 arch
 
@@ -65,6 +66,7 @@ def setup_to_finetune(model):
      layer.trainable = False
   for layer in model.layers[NB_IV3_LAYERS_TO_FREEZE:]:
      layer.trainable = True
+  model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy')
 
 
 def train(args):
@@ -76,8 +78,24 @@ def train(args):
   batch_size = int(args.batch_size)
 
   # data prep
-  train_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-  test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+	train_datagen =  ImageDataGenerator(
+	    preprocessing_function=preprocess_input,
+	    rotation_range=30,
+	    width_shift_range=0.2,
+	    height_shift_range=0.2,
+	    shear_range=0.2,
+	    zoom_range=0.2,
+	    horizontal_flip=True
+	)
+	test_datagen = ImageDataGenerator(
+	    preprocessing_function=preprocess_input,
+	    rotation_range=30,
+	    width_shift_range=0.2,
+	    height_shift_range=0.2,
+	    shear_range=0.2,
+	    zoom_range=0.2,
+	    horizontal_flip=True
+	)
 
   train_generator = train_datagen.flow_from_directory(
     args.train_dir,
@@ -96,8 +114,7 @@ def train(args):
   model = add_new_last_layer(base_model, nb_classes)
 
   # transfer learning
-  setup_to_transfer_learn(base_model)
-  model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+  setup_to_transfer_learn(model, base_model)
 
   h1 = model.fit_generator(
     train_generator,
@@ -109,7 +126,6 @@ def train(args):
 
   # fine-tuning
   setup_to_finetune(model)
-  model.compile(optimizer=SGD(lr=0.0001, momentum=0.9), loss='categorical_crossentropy')
 
   h2 = model.fit_generator(
     train_generator,
