@@ -19,7 +19,7 @@ NB_IV3_LAYERS_TO_FREEZE = 172
 
 
 def get_nb_files(directory):
-  """Get number of files ending in `file_ext` by searching directory dr recursively"""
+  """Get number of files by searching directory recursively"""
   if not os.path.exists(dr):
     return 0
   cnt = 0
