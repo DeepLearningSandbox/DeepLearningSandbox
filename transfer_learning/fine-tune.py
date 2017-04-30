@@ -20,7 +20,7 @@ NB_IV3_LAYERS_TO_FREEZE = 172
 
 def get_nb_files(directory):
   """Get number of files by searching directory recursively"""
-  if not os.path.exists(dr):
+  if not os.path.exists(directory):
     return 0
   cnt = 0
   for r, dirs, files in os.walk(directory):
@@ -78,24 +78,24 @@ def train(args):
   batch_size = int(args.batch_size)
 
   # data prep
-	train_datagen =  ImageDataGenerator(
-	    preprocessing_function=preprocess_input,
-	    rotation_range=30,
-	    width_shift_range=0.2,
-	    height_shift_range=0.2,
-	    shear_range=0.2,
-	    zoom_range=0.2,
-	    horizontal_flip=True
-	)
-	test_datagen = ImageDataGenerator(
-	    preprocessing_function=preprocess_input,
-	    rotation_range=30,
-	    width_shift_range=0.2,
-	    height_shift_range=0.2,
-	    shear_range=0.2,
-	    zoom_range=0.2,
-	    horizontal_flip=True
-	)
+  train_datagen =  ImageDataGenerator(
+      preprocessing_function=preprocess_input,
+      rotation_range=30,
+      width_shift_range=0.2,
+      height_shift_range=0.2,
+      shear_range=0.2,
+      zoom_range=0.2,
+      horizontal_flip=True
+  )
+  test_datagen = ImageDataGenerator(
+      preprocessing_function=preprocess_input,
+      rotation_range=30,
+      width_shift_range=0.2,
+      height_shift_range=0.2,
+      shear_range=0.2,
+      zoom_range=0.2,
+      horizontal_flip=True
+  )
 
   train_generator = train_datagen.flow_from_directory(
     args.train_dir,
