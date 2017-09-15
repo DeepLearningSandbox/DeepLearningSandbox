@@ -11,7 +11,7 @@ from keras.models import load_model
 from keras.applications.inception_v3 import preprocess_input
 
 
-target_size = (229, 229) #fixed size for InceptionV3 architecture
+target_size = (299, 299) #fixed size for InceptionV3 architecture
 
 
 def predict(model, img, target_size):
