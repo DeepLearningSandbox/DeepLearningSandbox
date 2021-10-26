@@ -110,7 +110,6 @@ if __name__=="__main__":
       img = io.imread(os.path.join(args.image_dir, fn))
       descriptors.append(encode(detector, sp, facerec, img, win))
 
-
     if D_PLOT == 1:
       pca = PCA(n_components=NB_COMPONENTS)
       X = np.squeeze(np.asarray(descriptors))
