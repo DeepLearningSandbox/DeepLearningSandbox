@@ -106,6 +106,7 @@ if __name__=="__main__":
       if FILE_EXT not in fn:
         continue
 
+
       img = io.imread(os.path.join(args.image_dir, fn))
       descriptors.append(encode(detector, sp, facerec, img, win))
 
